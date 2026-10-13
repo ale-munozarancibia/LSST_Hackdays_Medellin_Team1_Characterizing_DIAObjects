@@ -36,6 +36,7 @@ All of them can be installed using [pip](https://pypi.org/project/pip/).
 - https://rubinobservatory.org/for-scientists/get-started
 - https://rubinobservatory.org/explore/how-rubin-works/alerts
 - https://rubinobservatory.org/for-scientists/data-products/alerts-and-brokers
+- https://survey-strategy.lsst.io/baseline/ddf.html
 
 #### ALeRCE
 
