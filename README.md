@@ -2,6 +2,8 @@
 
 [Open Tools, Open Sky: Doing LSST Science with Public Rubin Data & LINCC Frameworks, A LATAM Hack Days Workshop](https://plazasmalagon.com/lsst-science-public-rubin-data-products-hackathon-UdeA-2026/), Team 1 Repository
 
+## [Team slides](https://docs.google.com/presentation/d/1lGDi9NMGLEuAyfeuP1FPdD7cY3kTao7BxtMhF5FGkZg/edit?slide=id.g2788db196f8_0_2#slide=id.g2788db196f8_0_2)
+
 ## Resources
 
 ### Software tools and libraries
