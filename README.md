@@ -4,8 +4,8 @@
 
 ## Team slides
 
-[Working](https://docs.google.com/presentation/d/1lGDi9NMGLEuAyfeuP1FPdD7cY3kTao7BxtMhF5FGkZg/edit?slide=id.g2788db196f8_0_2#slide=id.g2788db196f8_0_2)
-[Hack days final presentation](https://docs.google.com/presentation/d/1w-_FXPr5EGfr7xREyR1spHgT9GLrNpdmvYZ4tHKT8mU/edit?usp=sharing)
+- [Hack days work](https://docs.google.com/presentation/d/1lGDi9NMGLEuAyfeuP1FPdD7cY3kTao7BxtMhF5FGkZg/edit?slide=id.g2788db196f8_0_2#slide=id.g2788db196f8_0_2)
+- [Hack days final presentation](https://docs.google.com/presentation/d/1w-_FXPr5EGfr7xREyR1spHgT9GLrNpdmvYZ4tHKT8mU/edit?usp=sharing)
 
 ## Resources
 
