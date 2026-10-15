@@ -1,0 +1,338 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rubin Crossmatch Lab</title>
+<style>
+:root{--bg:#f6f7fb;--fg:#14182b;--mut:#5b6280;--card:#fff;--line:#dfe3ef;--acc:#4457ff;--ok:#0a8f7a;--warn:#c2410c;--code:#eef0f8;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b0e1a;--fg:#e8ebf7;--mut:#9aa3c4;--card:#131830;--line:#252c4d;--acc:#8b99ff;--ok:#3ed8bd;--warn:#fb923c;--code:#0d1124;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b0e1a;--fg:#e8ebf7;--mut:#9aa3c4;--card:#131830;--line:#252c4d;--acc:#8b99ff;--ok:#3ed8bd;--warn:#fb923c;--code:#0d1124;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:26px;margin:8px 0 2px;letter-spacing:-.02em}h2{font-size:17px;margin:0 0 4px}
+.sub{color:var(--mut);margin:0 0 18px;max-width:70ch}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px;margin-bottom:16px}
+.n{display:inline-grid;place-items:center;width:24px;height:24px;border-radius:50%;background:var(--acc);color:var(--bg);font-weight:700;font-size:13px;margin-right:8px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;margin:10px 0}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+input[type=number],input[type=text],select{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:7px;padding:7px 9px;font:inherit;min-width:0}
+input[type=number]{width:120px}input[type=text]{width:220px}
+button,.btn{background:var(--acc);color:var(--bg);border:0;border-radius:8px;padding:8px 14px;font:600 14px inherit;font-family:inherit;cursor:pointer}
+button.ghost,.btn.ghost{background:transparent;color:var(--acc);border:1px solid var(--line)}
+button:disabled{opacity:.45;cursor:default}
+.btn input{display:none}.btn{display:inline-block}
+.cats{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}
+.cat{border:1px solid var(--line);border-radius:10px;padding:12px}.cat.off{opacity:.55}
+.cat small{display:block;color:var(--mut);word-break:break-all;margin:2px 0 6px}
+.st{font-size:12px;color:var(--mut);margin-top:6px}.st b{color:var(--ok)}
+textarea{width:100%;min-height:150px;background:var(--code);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace;resize:vertical}
+details{margin-top:10px}summary{cursor:pointer;color:var(--acc);font-weight:600}
+.tw{overflow-x:auto;border:1px solid var(--line);border-radius:8px;margin-top:8px}
+table{border-collapse:collapse;width:100%;font-size:12.5px}th,td{padding:5px 9px;text-align:left;white-space:nowrap;border-bottom:1px solid var(--line)}
+th{background:var(--code);position:sticky;top:0}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-top:10px}
+.list{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.list b{display:block}.list span{font-size:12px;color:var(--mut)}
+.warn{color:var(--warn)}.msg{margin:8px 0;color:var(--mut);font-size:13px}
+svg{width:100%;height:auto;background:var(--code);border-radius:8px}svg text{fill:var(--mut);font-size:9px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Rubin Crossmatch Lab</h1>
+<p class="sub">Cruza objetos de Rubin (ALeRCE) con TNS, Gaia DR3, AllWISE u otros catálogos.</p>
+
+<p class="msg" id="mode"></p>
+<section class="card">
+<h2><span class="n">1</span>Campo y selección Rubin (ALeRCE)</h2>
+<div class="row">
+<label>RA (°)<input type="number" id="ra" value="61.25" step="any"></label>
+<label>Dec (°)<input type="number" id="dec" value="-48.46" step="any"></label>
+<label>Radio (arcsec)<input type="number" id="rad" value="11124.7" step="any"></label>
+<label>Prob. mínima<input type="number" id="prob" value="0.6" step="0.05"></label>
+<label>n_det mínimo<input type="number" id="ndet" value="50"></label>
+<label>Clases<input type="text" id="cls" value="SN,AGN"></label>
+<label>Límite por survey (máx. 3000)<input type="number" id="lim" value="3000" min="1" max="3000" autocomplete="off"></label>
+</div>
+<details open><summary>Consulta ADQL para ALeRCE (TAP)</summary><textarea id="adql" readonly></textarea>
+<div class="row"><button class="ghost" data-copy="adql">Copiar</button></div></details>
+<div class="row">
+<label class="btn" for="f-rubin" style="flex-direction:row;color:var(--bg)">Subir CSV de Rubin<input type="file" id="f-rubin" accept=".csv,.txt"></label>
+<button id="qr">Consultar ALeRCE directo</button>
+<button class="ghost" id="demo">Cargar datos sintéticos de prueba</button>
+</div>
+<div class="st" id="st-rubin">Sin datos. Ejecuta la consulta en ALeRCE y sube el CSV (columnas: oid, meanra, meandec, class_name, probability…).</div>
+</section>
+
+<section class="card">
+<h2><span class="n">2</span>Catálogos externos</h2>
+<p class="msg">Gaia DR3 y AllWISE</p>
+<div class="row"><button id="qall">Consultar directo los surveys activos (Gaia, AllWISE, TNS)</button></div>
+<div class="cats" id="cats"></div>
+<details><summary>Script Python (LSDB)</summary><textarea id="py" readonly style="min-height:260px"></textarea>
+<div class="row"><button class="ghost" data-copy="py">Copiar</button></div></details>
+</section>
+
+<section class="card">
+<h2><span class="n">3</span>Crossmatch y listas</h2>
+<div class="row"><button id="run">Ejecutar crossmatch</button><span class="msg" id="runmsg"></span></div>
+<div id="out" hidden>
+<h2 style="margin-top:14px">Resumen por clase</h2><div class="tw" id="sum"></div>
+<div class="grid" id="hists"></div>
+<h2 style="margin-top:18px">Listas para descargar</h2><div class="grid" id="lists"></div>
+<h2 style="margin-top:18px">Vista previa de la tabla final</h2><div class="tw" style="max-height:380px" id="prev"></div>
+</div>
+</section>
+</main>
+<script>
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const RAC=['meanra','ra','ra_icrs','raj2000','_raj2000','ra_deg','radeg','ra_j2000'],DEC=['meandec','dec','dec_icrs','dej2000','_dej2000','declination','dec_deg','decdeg','de_icrs','dec_j2000'];
+const PAIRS=[['meanra','meandec'],['ra','dec'],['ra_icrs','de_icrs'],['ra_icrs','dec_icrs'],['raj2000','dej2000'],['_raj2000','_dej2000'],['ra_deg','dec_deg'],['radeg','decdeg'],['ra_j2000','dec_j2000'],['ra','declination']];
+function pickXY(cols){const l=cols.map(c=>c.toLowerCase());for(const[a,d]of PAIRS){const i=l.indexOf(a),j=l.indexOf(d);if(i>=0&&j>=0)return[cols[i],cols[j]]}return[pick(cols,RAC),pick(cols,DEC)]}
+const pick=(cols,cand)=>{const l=cols.map(c=>c.toLowerCase());for(const c of cand){const i=l.indexOf(c);if(i>=0)return cols[i]}return''};
+const CATS={
+ AllWISE:{name:'AllWISE',url:'https://data.lsdb.io/hats/wise/allwise',rad:2,nn:1,suf:'_wise',cols:['designation','source_id','ra','dec','w1mpro','w1sigmpro','w2mpro','w2sigmpro','w3mpro','w3sigmpro','w4mpro','w4sigmpro','ext_flg','cc_flags','ph_qual']},
+ TNS:{name:'TNS',url:'https://data.lsdb.io/hats/tns',rad:2,nn:1,suf:'_tns',cols:null},
+ Gaia:{name:'GaiaDR3',url:'https://data.lsdb.io/hats/gaia_dr3/gaia',rad:1,nn:1,suf:'_gaia',cols:['source_id','ra','dec','parallax','parallax_error','pmra','pmdec','phot_g_mean_mag','phot_bp_mean_mag','phot_rp_mean_mag','ruwe']},
+ Custom:{name:'Custom',url:'',rad:2,nn:1,suf:'_custom',cols:null}
+};
+for(const c of Object.values(CATS))Object.assign(c,{on:c.name!=='Custom',data:null,ra:'',de:''});
+const S={rubin:null,lists:[],ra:'',de:''};
+const pref=c=>c.name.replace(/\W/g,'')||'cat';
+const CLSDEF=['SN','AGN'];
+
+/* ---------- utilidades ---------- */
+function parseCSV(t){const L=t.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+ const sp=l=>{if(l.indexOf('"')<0)return l.split(',');const o=[];let c='',q=false;for(const ch of l){if(ch=='"')q=!q;else if(ch==','&&!q){o.push(c);c=''}else c+=ch}o.push(c);return o};
+ const cols=sp(L[0]).map(s=>s.trim()),rows=[];
+ for(let i=1;i<L.length;i++){const v=sp(L[i]),r={};for(let j=0;j<cols.length;j++)r[cols[j]]=v[j]??'';rows.push(r)}
+ return{cols,rows}}
+function toCSV(rows,cols){cols=cols||(rows.length?Object.keys(rows[0]):[]);
+ const e=v=>{v=v==null?'':String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v};
+ return cols.map(e).join(',')+'\n'+rows.map(r=>cols.map(c=>e(r[c])).join(',')).join('\n')}
+function num(v,isRA){if(v==null||v==='')return NaN;v=String(v).trim();
+ if(v.includes(':')||v.split(/\s+/).length==3){const p=v.split(/[:\s]+/).map(Number),s=v[0]=='-'?-1:1,d=Math.abs(p[0])+p[1]/60+p[2]/3600;return isRA?d*15:s*d}
+ return +v}
+const D=Math.PI/180;
+function sep(a1,d1,a2,d2){const s1=Math.sin((d2-d1)*D/2),s2=Math.sin((a2-a1)*D/2),h=s1*s1+Math.cos(d1*D)*Math.cos(d2*D)*s2*s2;return 2*Math.asin(Math.min(1,Math.sqrt(h)))/D*3600}
+function xmatch(rub,ra1,de1,ext,ra2,de2,rad,all){
+ const E=[];ext.forEach((r,i)=>{const a=num(r[ra2],1),d=num(r[de2],0);if(isFinite(a)&&isFinite(d))E.push({i,a,d})});E.sort((x,y)=>x.d-y.d);
+ const rd=rad/3600,out=[];
+ rub.forEach((r,k)=>{const a=num(r[ra1],1),d=num(r[de1],0);if(!isFinite(a)||!isFinite(d))return;
+  let lo=0,hi=E.length;while(lo<hi){const m=(lo+hi)>>1;if(E[m].d<d-rd)lo=m+1;else hi=m}
+  const h=[];for(let j=lo;j<E.length&&E[j].d<=d+rd;j++){const s=sep(a,d,E[j].a,E[j].d);if(s<=rad)h.push([s,E[j].i])}
+  h.sort((x,y)=>x[0]-y[0]);(all?h:h.slice(0,1)).forEach(x=>out.push({k,e:x[1],s:x[0]}))});
+ return out}
+async function save(name,text){const d=window.claude?await claude.use('downloads'):null;
+ if(!d){if(window.claude){$('#runmsg').textContent='La descarga no está disponible en esta vista.';return}const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([text],{type:'text/plain'}));a.download=name;a.click();return}
+ try{await d.save({filename:name,data:new Blob([text],{type:'text/plain'})})}catch(e){if(e&&e.code!=='declined')$('#runmsg').textContent='No se pudo guardar: '+(e.message||e.code)}}
+async function copy(id){const t=$('#'+id);t.select();try{await navigator.clipboard.writeText(t.value)}catch(e){document.execCommand('copy')}}
+document.addEventListener('click',e=>{const b=e.target.closest('[data-copy]');if(b)copy(b.dataset.copy)});
+
+/* ---------- generadores de código ---------- */
+function adql(x=''){const cl=$('#cls').value.split(',').map(s=>s.trim()).filter(Boolean).map(s=>`'${s}'`).join(', '),rd=(+$('#rad').value/3600);
+ return `SELECT TOP ${lim()} obj.oid, obj.meanra, obj.meandec, obj.sigmara, obj.sigmadec,
+       obj.firstmjd, obj.lastmjd, obj.n_det, tax.class_name, prob.probability
+FROM alerce_tap.object AS obj
+JOIN alerce_tap.probability AS prob ON obj.oid = prob.oid AND obj.sid = prob.sid
+JOIN alerce_tap.taxonomy AS tax ON prob.classifier_id = tax.classifier_id
+                               AND prob.class_id = tax.class_id
+WHERE obj.tid = 1 AND obj.sid = 1 AND prob.classifier_id = 3
+  AND tax.class_name IN (${cl})
+  AND prob.probability >= ${$('#prob').value}
+  AND obj.n_det >= ${$('#ndet').value}
+  AND CONTAINS(POINT('ICRS', obj.meanra, obj.meandec),
+               CIRCLE('ICRS', ${$('#ra').value}, ${$('#dec').value}, ${+rd.toPrecision(7)})) = 1${x}
+ORDER BY prob.probability DESC`}
+function pyscript(){const cs=Object.values(CATS).filter(c=>c.on&&c.url);
+ const lst=cs.map(c=>`    ("${c.name}", "${c.url}", ${c.cols?JSON.stringify(c.cols):'None'}, ${c.rad}, ${c.nn}, "${c.suf}"),`).join('\n');
+ return `# pip install pyvo lsdb
+import pyvo, lsdb
+
+RA0, DEC0, RADIUS_ARCSEC = ${$('#ra').value}, ${$('#dec').value}, ${$('#rad').value}
+ADQL = """${adql()}"""
+
+tap = pyvo.dal.TAPService("https://tap.alerce.online/tap")
+df = (tap.search(ADQL, maxrec=10_000_000).to_table().to_pandas()
+        .drop_duplicates("oid").reset_index(drop=True))
+df.to_csv("rubin_alerce.csv", index=False)          # -> paso 1 de la página
+
+rubin = lsdb.from_dataframe(df, ra_column="meanra", dec_column="meandec", catalog_name="rubin")
+cone = lsdb.ConeSearch(RA0, DEC0, radius_arcsec=RADIUS_ARCSEC)
+
+CATALOGS = [  # (nombre, url, columnas, radio ", n_neighbors, sufijo)
+${lst}
+]
+for name, url, cols, rad, nn, suf in CATALOGS:
+    cat = lsdb.open_catalog(url, columns=cols, search_filter=cone)
+    cat.compute().to_csv(f"{name}_cone.csv", index=False)   # -> paso 2 de la página
+    xm = rubin.crossmatch(cat, radius_arcsec=rad, n_neighbors=nn, how="left",
+                          suffixes=("_rubin", suf)).compute()
+    xm.to_csv(f"rubin_x_{name}.csv", index=False)           # verificación nativa LSDB
+`}
+function refreshCode(){$('#adql').value=adql();$('#py').value=pyscript()}
+
+/* ---------- UI catálogos ---------- */
+function renderCats(){$('#cats').innerHTML=Object.entries(CATS).map(([k,c])=>`<div class="cat ${c.on?'':'off'}" data-k="${k}">
+<label style="flex-direction:row;align-items:center;gap:8px;color:var(--fg);font-size:14px"><input type="checkbox" class="on" ${c.on?'checked':''}>${k=='Custom'?`<input type="text" class="nm" value="${esc(c.name)}" style="width:140px">`:`<b>${c.name}</b>`}</label>
+${k=='Custom'?`<input type="text" class="url" placeholder="URL HATS (opcional)" value="${esc(c.url)}" style="width:100%;margin:6px 0">`:`<small>${c.url}</small>`}
+<div class="row"><label>Radio (")<input type="number" class="rd" value="${c.rad}" step="any" style="width:80px"></label>
+<label>Vecinos<select class="nn"><option value="1" ${c.nn==1?'selected':''}>Más cercano</option><option value="0" ${c.nn==0?'selected':''}>Todos</option></select></label></div>
+<label class="btn ghost" style="flex-direction:row;color:var(--acc);display:inline-block">Subir CSV<input type="file" class="fi" accept=".csv,.txt"></label>
+${CDS[k]||k=='TNS'?'<button class="ghost q">Consultar directo</button>':''}
+${k=='TNS'?`<div class="row"><label>Bot ID<input type="text" class="tb" data-f="id" value="${esc(c.id||'')}" style="width:70px"></label><label>Nombre del bot<input type="text" class="tb" data-f="bn" value="${esc(c.bn||'')}" style="width:110px"></label><label>API key<input type="password" class="tb" data-f="key" value="${esc(c.key||'')}" style="width:120px"></label></div><small>Credenciales de bot de wis-tns.org; solo se usan en esta sesión.</small>`:''}
+<div class="st" id="st-${k}">${stat(c)}</div></div>`).join('');refreshCode()}
+function stat(c){if(!c.data)return'Sin datos';const o=c.data.cols.map(x=>`<option ${x==c.ra?'selected':''}>${esc(x)}</option>`).join(''),p=c.data.cols.map(x=>`<option ${x==c.de?'selected':''}>${esc(x)}</option>`).join('');
+ return `<b>${c.data.rows.length.toLocaleString()}</b> filas · RA <select class="sra">${o}</select> Dec <select class="sde">${p}</select>`}
+$('#cats').addEventListener('input',async e=>{const box=e.target.closest('.cat'),k=box.dataset.k,c=CATS[k],t=e.target;
+ if(t.classList.contains('on')){c.on=t.checked;box.classList.toggle('off',!c.on)}
+ else if(t.classList.contains('rd'))c.rad=+t.value;else if(t.classList.contains('nn'))c.nn=+t.value;
+ else if(t.classList.contains('nm'))c.name=t.value;else if(t.classList.contains('tb'))c[t.dataset.f]=t.value;else if(t.classList.contains('url'))c.url=t.value;
+ else if(t.classList.contains('sra'))c.ra=t.value;else if(t.classList.contains('sde'))c.de=t.value;
+ else if(t.classList.contains('fi')&&t.files[0]){const d=parseCSV(await t.files[0].text());c.data=d;[c.ra,c.de]=pickXY(d.cols);$('#st-'+k).innerHTML=stat(c)}
+ refreshCode()});
+['ra','dec','rad','prob','ndet','cls','lim'].forEach(i=>$('#'+i).addEventListener('input',refreshCode));
+$('#f-rubin').addEventListener('change',async e=>{if(!e.target.files[0])return;setRubin(parseCSV(await e.target.files[0].text()))});
+function setRubin(d){S.rubin=d;[S.ra,S.de]=pickXY(d.cols);
+ const o=d.cols.map(x=>`<option ${x==S.ra?'selected':''}>${esc(x)}</option>`).join(''),p=d.cols.map(x=>`<option ${x==S.de?'selected':''}>${esc(x)}</option>`).join('');
+ $('#st-rubin').innerHTML=`<b>${d.rows.length.toLocaleString()}</b> objetos · RA <select id="rra">${o}</select> Dec <select id="rde">${p}</select>`;
+ $('#rra').onchange=e=>S.ra=e.target.value;$('#rde').onchange=e=>S.de=e.target.value}
+
+/* ---------- consultas directas (máx. 200 por survey) ---------- */
+const CDS={Gaia:'vizier:I/355/gaiadr3',AllWISE:'vizier:II/328/allwise'},DIRECT=['Gaia','AllWISE','TNS'],lim=()=>Math.min(10000,Math.max(1,+$('#lim').value||10000));
+const XM=['https://cdsxmatch.cds.unistra.fr/xmatch/api/v1/sync','https://cdsxmatch.u-strasbg.fr/xmatch/api/v1/sync','http://cdsxmatch.u-strasbg.fr/xmatch/api/v1/sync'];
+let PROXY=false;
+function mode(){$('#mode').innerHTML=PROXY?'<b>Conexión: proxy local activo</b> (sin límites de CORS; TNS disponible).':(location.protocol=='file:'?'<span class="warn">Abriste el archivo directamente: así no hay proxy. Ejecuta <code>python rubin_proxy.py</code> y abre <code>http://localhost:8765</code> en el navegador.</span>':(['localhost','127.0.0.1'].includes(location.hostname)?'<span class="warn">El servidor local no responde (¿se cerró la terminal?). Vuelve a ejecutar <code>python rubin_proxy.py</code> y recarga esta página.</span>':'<span class="warn">Esta es una versión alojada ('+esc(location.hostname)+'): aquí no puede haber proxy. Ejecuta <code>python rubin_proxy.py</code> y abre <code>http://localhost:8765</code>.</span>'))}
+let PINGERR='';
+async function ensureProxy(){if(PROXY)return;try{const r=await fetch('/api/ping'),t=await r.text();PROXY=r.ok&&t==='rubin-proxy';PINGERR=PROXY?'':`HTTP ${r.status}, respuesta no esperada`}catch(e){PROXY=false;PINGERR=e.message||String(e)}mode()}
+if(location.protocol=='file:')fetch('http://localhost:8765/api/ping',{mode:'no-cors'}).then(()=>location.replace('http://localhost:8765/')).catch(()=>{});
+ensureProxy();
+async function net(url,o={}){await ensureProxy();return PROXY?fetch('/api/proxy?url='+encodeURIComponent(url),o):fetch(url,o)}
+const netErr=(e,sel)=>{$(sel).innerHTML=`<span class="warn">No se pudo consultar: ${esc(e.message||e)}<br>${PROXY?'El proxy local está activo; revisa el mensaje del servicio.':'Ejecuta <code>python rubin_proxy.py</code> y abre <code>http://localhost:8765</code> (o sube el CSV).<br><small>Diagnóstico — página abierta en: '+esc(location.href.slice(0,70))+' · ping al proxy: '+esc(PINGERR||'sin respuesta')+'</small>'}</span>`};
+function votable(t){const x=new DOMParser().parseFromString(t,'text/xml'),cols=[...x.querySelectorAll('FIELD')].map(f=>f.getAttribute('name'));
+ return{cols,rows:[...x.querySelectorAll('TABLEDATA > TR')].map(tr=>{const o={};[...tr.children].forEach((td,i)=>o[cols[i]]=td.textContent);return o})}}
+async function tap(base,q){const errs=[];
+ for(const f of ['csv','text/csv','votable']){
+  try{const r=await net(base,{method:'POST',body:new URLSearchParams({REQUEST:'doQuery',LANG:'ADQL',FORMAT:f,MAXREC:String(lim()),QUERY:q})}),t=await r.text();
+   if(!r.ok){errs.push(`${f}: HTTP ${r.status} ${t.replace(/<[^>]+>/g,' ').trim().slice(0,200)}`);continue}
+   if(t.trimStart().startsWith('<')){if(t.includes('TABLEDATA'))return votable(t);errs.push(`${f}: ${t.replace(/<[^>]+>/g,' ').trim().slice(0,200)}`);continue}
+   return t.trim()?parseCSV(t):{cols:[],rows:[]}}catch(e){errs.push(`${f}: ${e.message}`);if(e instanceof TypeError)break}}
+ throw new Error(errs.join(' | '))}
+async function splitQ(T,C){const dec0=+$('#dec').value,R=+$('#rad').value/3600,out=[];let nq=0;
+ const band=async(a,b,dep)=>{nq++;$('#st-rubin').textContent=`Posible tope de ${C} filas: dividiendo la consulta por declinación (${nq} consultas, ${out.length} filas)…`;
+  const d=await tap(T,adql(` AND obj.meandec >= ${a} AND obj.meandec < ${b}`));
+  if(d.rows.length>=C&&dep<8&&b-a>1e-4){const h=(a+b)/2;await band(a,h,dep+1);await band(h,b,dep+1)}else d.rows.forEach(r=>out.push(r))};
+ const K=6,lo=Math.max(-90,dec0-R),hi=Math.min(90,dec0+R)+1e-6,w=(hi-lo)/K;
+ for(let i=0;i<K;i++)await band(lo+i*w,lo+(i+1)*w,0);
+ return{rows:out,nq}}
+async function qRubin(){const m='#st-rubin';$(m).textContent='Consultando ALeRCE…';
+ try{const T='https://tap.alerce.online/tap/sync',d=await tap(T,adql());if(!d.rows.length)throw new Error('la consulta no devolvió filas');
+  const C0=d.rows.length;let sp=null;
+  if(C0<lim()&&C0%1000==0){sp=await splitQ(T,C0);if(sp.rows.length>C0)d.rows=sp.rows}
+  const s=new Set();const raw=d.rows.length;d.rows=d.rows.filter(x=>!s.has(x.oid)&&s.add(x.oid));
+  if(sp){d.rows.sort((a,b)=>b.probability-a.probability);d.rows=d.rows.slice(0,lim())}
+  setRubin(d);$(m).innerHTML+=` · Pedido: hasta ${lim()} · ${sp?`<span class="warn">el resultado coincidía con una cifra redonda (${C0}); se verificó dividiendo en ${sp.nq} consultas por franjas de declinación → ${d.rows.length} objetos únicos.</span>`:`ALeRCE devolvió ${raw} filas.`}`}catch(e){netErr(e,m)}}
+async function qCDS(k){const c=CATS[k],R=S.rubin,m='#st-'+k;
+ if(!R){$(m).innerHTML='<span class="warn">Primero carga los objetos de Rubin (paso 1).</span>';return}
+ $(m).textContent='Consultando CDS xmatch…';
+ try{const all=R.rows.slice(0,lim()).map(r=>({oid:r.oid||'',ra:num(r[S.ra],1),dec:num(r[S.de],0)})),CH=5000,nb=Math.ceil(all.length/CH),drop=['oid','ra','dec','angDist'],seen=new Set();let d={cols:[],rows:[]},okHost=null;
+  for(let bi=0;bi<nb;bi++){$(m).textContent=`Consultando CDS xmatch… lote ${bi+1}/${nb}`;
+   const csv=toCSV(all.slice(bi*CH,(bi+1)*CH)),fd=new FormData();fd.append('request','xmatch');fd.append('distMaxArcsec',c.rad);fd.append('RESPONSEFORMAT','csv');fd.append('cat2',CDS[k]);fd.append('colRA1','ra');fd.append('colDec1','dec');fd.append('cat1',new Blob([csv],{type:'text/csv'}),'rubin.csv');
+   const errs=[];let part=null;
+   for(const b of(okHost?[okHost]:XM)){try{const r=await net(b,{method:'POST',body:fd}),t=await r.text();if(!r.ok){errs.push(`${new URL(b).host}: HTTP ${r.status} ${t.slice(0,150)}`);continue}part=t.trim()?parseCSV(t):{cols:[],rows:[]};okHost=b;break}catch(e){errs.push(`${new URL(b).host}: ${e.message}`)}}
+   if(!part)throw new Error(errs.join(' | '));
+   part.cols=part.cols.filter(x=>!drop.includes(x));if(!d.cols.length)d.cols=part.cols;
+   const[pra,pde]=part.cols.length?pickXY(part.cols):['',''];
+   part.rows.forEach(o=>{drop.forEach(x=>delete o[x]);const kk=o[pra]+'|'+o[pde];if(!seen.has(kk)){seen.add(kk);d.rows.push(o)}})}
+  if(!d.rows.length){c.data={cols:[],rows:[]};c.ra='ra';c.de='dec';$(m).innerHTML=`<b>0</b> coincidencias en ${esc(c.name)} a menos de ${c.rad}″: resultado válido (los objetos de Rubin no tienen contraparte aquí).`;return}
+  c.data=d;[c.ra,c.de]=pickXY(d.cols);
+  $(m).innerHTML=stat(c)+(R.rows.length>lim()?` · <span class="warn">solo los primeros ${lim()} objetos de Rubin</span>`:'')}catch(e){netErr(e,m)}}
+async function qTNS(){const c=CATS.TNS,R=S.rubin,m='#st-TNS';
+ if(!R){$(m).innerHTML='<span class="warn">Primero carga los objetos de Rubin (paso 1).</span>';return}
+ await ensureProxy();if(!PROXY){$(m).innerHTML='<span class="warn">TNS exige cabecera User-Agent: necesita el proxy local (<code>python rubin_proxy.py</code>).</span>';return}
+ if(!c.id||!c.bn||!c.key){$(m).innerHTML='<span class="warn">Completa Bot ID, nombre del bot y API key de TNS (no se guardan).</span>';return}
+ const H={'X-Upstream-UA':'tns_marker'+JSON.stringify({tns_id:c.id,type:'bot',name:c.bn})},N=Math.min(lim(),R.rows.length),rows=[];
+ if(N>1000&&!confirm(`TNS se consulta objeto por objeto: ${N} objetos tardarían ~${Math.round(N*.8/60)} min y TNS puede limitar las peticiones. ¿Continuar?`)){$(m).textContent='Consulta TNS cancelada.';return}
+ const call=async(p,data)=>{const fd=new FormData();fd.append('api_key',c.key);fd.append('data',JSON.stringify(data));
+  const r=await net('https://www.wis-tns.org/api/get/'+p,{method:'POST',body:fd,headers:H}),t=await r.text();
+  if(!r.ok)throw new Error('TNS HTTP '+r.status+' '+t.replace(/<[^>]+>/g,' ').trim().slice(0,150));
+  let j;try{j=JSON.parse(t)}catch{throw new Error('TNS respuesta no JSON: '+t.slice(0,150))}
+  if(j.id_code&&j.id_code!==200)throw new Error('TNS: '+(j.id_message||j.id_code));return j.data?.reply};
+ try{for(let i=0;i<N;i++){$(m).textContent=`Consultando TNS ${i+1}/${N} (~${Math.ceil((N-i)*.8/60)} min restantes)…`;const r=R.rows[i];
+   const rep=await call('search',{ra:String(num(r[S.ra],1)),dec:String(num(r[S.de],0)),radius:String(c.rad),units:'arcsec'});
+   if(Array.isArray(rep)&&rep.length){const o=await call('object',{objname:rep[0].objname,objid:'',photometry:'0',spectra:'0'});
+    if(o&&o.radeg!=null)rows.push({name:(o.name_prefix||rep[0].prefix||'')+' '+(o.objname||rep[0].objname),ra:o.radeg,dec:o.decdeg,type:o.object_type?.name||'',redshift:o.redshift??'',discoverydate:o.discoverydate||''})}
+   await new Promise(z=>setTimeout(z,700))}
+  c.data={cols:rows.length?Object.keys(rows[0]):[],rows};c.ra='ra';c.de='dec';
+  $(m).innerHTML=rows.length?stat(c):`<b>0</b> coincidencias en TNS a menos de ${c.rad}″ (${N} objetos consultados): resultado válido.`}catch(e){netErr(e,m)}}
+$('#qr').onclick=qRubin;
+$('#qall').onclick=async()=>{for(const k of DIRECT)if(CATS[k].on)await(k=='TNS'?qTNS():qCDS(k))};
+$('#cats').addEventListener('click',e=>{const b=e.target.closest('.q');if(!b)return;const k=b.closest('.cat').dataset.k;k=='TNS'?qTNS():qCDS(k)});
+
+/* ---------- datos sintéticos ---------- */
+$('#demo').onclick=()=>{let s=7;const R=()=>(s=(s*16807)%2147483647)/2147483647,ra0=61.25,de0=-48.46;
+ const pt=()=>{const r=3*Math.sqrt(R()),a=R()*6.283;return[ra0+r*Math.cos(a)/Math.cos(de0*D),de0+r*Math.sin(a)]};
+ const rub=[],w=[],g=[],t=[];
+ for(let i=0;i<60;i++){const[a,d]=pt(),c=R()<.5?'SN':'AGN';rub.push({oid:'SYN'+(1000+i),meanra:a.toFixed(6),meandec:d.toFixed(6),n_det:50+Math.floor(R()*200),class_name:c,probability:(.6+R()*.4).toFixed(3)});
+  const j=()=>(R()-.5)*3.2/3600;
+  if(R()<(c=='AGN'?.7:.3)){const a1=c=='AGN'?14+R()*2:16+R()*2,col=c=='AGN'?.8+R()*.6:R()*.5;w.push({designation:'J'+i,ra:a+j(),dec:d+j(),w1mpro:a1.toFixed(2),w2mpro:(a1-col).toFixed(2)})}
+  if(R()<.2)t.push({name:'SN 2026x'+i,ra:a+j(),declination:d+j(),redshift:(R()*.5).toFixed(3),type:c=='SN'?(R()<.8?'SN Ia':'AGN'):(R()<.5?'AGN':'TDE')});
+  if(R()<.3)g.push({source_id:'G'+i,ra:a+j()/2,dec:d+j()/2,parallax:(R()*2).toFixed(3),phot_g_mean_mag:(17+R()*3).toFixed(2)})}
+ for(let i=0;i<300;i++){const[a,d]=pt();w.push({designation:'F'+i,ra:a,dec:d,w1mpro:(14+R()*4).toFixed(2),w2mpro:(14+R()*4).toFixed(2)});g.push({source_id:'F'+i,ra:a,dec:d,parallax:R().toFixed(3),phot_g_mean_mag:(15+R()*5).toFixed(2)})}
+ const mk=r=>({cols:Object.keys(r[0]),rows:r});
+ setRubin(mk(rub));[['AllWISE',w],['TNS',t],['Gaia',g]].forEach(([k,r])=>{const c=CATS[k];c.data=mk(r);[c.ra,c.de]=pickXY(c.data.cols);c.on=true});
+ renderCats();$('#runmsg').textContent='Datos sintéticos cargados (no son reales). Ejecuta el crossmatch.'};
+
+/* ---------- crossmatch ---------- */
+const isSN=t=>/^SN/i.test(t);
+function run(){const R=S.rubin;if(!R){$('#runmsg').textContent='Falta subir los objetos de Rubin (paso 1).';return}
+ const act=Object.entries(CATS).filter(([k,c])=>c.on&&c.data&&c.ra&&c.de);
+ if(!act.length){$('#runmsg').textContent='Activa al menos un catálogo con datos (paso 2).';return}
+ const rows=R.rows,url=o=>o.map(x=>'https://lsst.alerce.online/object/'+encodeURIComponent(String(x).trim())+'?survey=lsst').join('\n'),fin=rows.map(r=>({...r,alerce_link:r.oid?url([r.oid]):''})),res={},L=[];
+ for(const[k,c]of act){const p=pref(c),pairs=xmatch(rows,S.ra,S.de,c.data.rows,c.ra,c.de,c.rad,c.nn==0),best=new Map();
+  pairs.forEach(x=>{if(!best.has(x.k))best.set(x.k,x)});
+  fin.forEach((f,i)=>{const b=best.get(i);f['sep_'+p+'_arcsec']=b?b.s.toFixed(3):'';c.data.cols.forEach(col=>f[p+'_'+col]=b?c.data.rows[b.e][col]:'')});
+  res[k]={c,p,pairs,best}}
+ const cl=r=>r.class_name||'—';
+ if(res.AllWISE){const{c,p,best}=res.AllWISE,w1=pick(c.data.cols,['w1mpro','w1mag']),w2=pick(c.data.cols,['w2mpro','w2mag']);
+  if(w1&&w2)fin.forEach((f,i)=>{const b=best.get(i);if(!b){f.W1_W2='';f.agn_stern12='';return}const r=c.data.rows[b.e],d=+r[w1]-+r[w2];f.W1_W2=isFinite(d)?d.toFixed(3):'';f.agn_stern12=isFinite(d)?(d>=.8):''})}
+ let tnsT='',tnsN='';
+ if(res.TNS){const{c,p,best}=res.TNS;tnsT=pick(c.data.cols,['type','obj_type','objtype','classification']);tnsN=pick(c.data.cols,['name','objname','fullname']);
+  fin.forEach((f,i)=>{const t=best.has(i)?String(f[p+'_'+tnsT]||'').trim():'';f.tns_sospechoso=best.has(i)?(cl(f)=='AGN'||(cl(f)=='SN'&&t!==''&&!isSN(t))):''})}
+ /* resumen */
+ const cls=[...new Set(rows.map(cl))].sort(),keys=Object.keys(res);
+ let h=`<table><tr><th>Clase</th><th>n Rubin</th>${keys.map(k=>`<th>${res[k].c.name}: con match</th><th>fracción</th>`).join('')}</tr>`;
+ [...cls,'TOTAL'].forEach(c0=>{const idx=rows.map((r,i)=>i).filter(i=>c0=='TOTAL'||cl(rows[i])==c0);
+  h+=`<tr><td>${esc(c0)}</td><td>${idx.length}</td>${keys.map(k=>{const n=idx.filter(i=>res[k].best.has(i)).length;return`<td>${n}</td><td>${idx.length?(100*n/idx.length).toFixed(1):0}%</td>`}).join('')}</tr>`});
+ $('#sum').innerHTML=h+'</table>';
+ $('#hists').innerHTML=keys.map(k=>{const x=res[k],B=20,hh=Array(B).fill(0);x.pairs.forEach(q=>hh[Math.min(B-1,Math.floor(q.s/x.c.rad*B))]++);const m=Math.max(1,...hh);
+  return`<svg viewBox="0 0 300 120" role="img" aria-label="Separaciones ${esc(x.c.name)}">`+hh.map((v,i)=>`<rect x="${10+i*14}" y="${100-v/m*80}" width="12" height="${v/m*80}" fill="var(--acc)"/>`).join('')+`<text x="10" y="11">Separación Rubin–${esc(x.c.name)} (n=${x.pairs.length})</text><text x="10" y="114">0"</text><text x="290" y="114" text-anchor="end">${x.c.rad}"</text></svg>`}).join('');
+ /* listas */
+ L.push({t:'Tabla final (Rubin × catálogos)',n:fin.length,f:`rubin_xmatch_final.csv`,d:()=>toCSV(fin)});
+ for(const k of keys){const{c,p,pairs,best}=res[k],nm=p.toLowerCase();
+  L.push({t:`Pares Rubin–${c.name}`,n:pairs.length,f:`pares_rubin_${nm}.csv`,d:()=>toCSV(pairs.map(q=>({...rows[q.k],sep_arcsec:q.s.toFixed(3),...Object.fromEntries(c.data.cols.map(x=>[p+'_'+x,c.data.rows[q.e][x]]))})))});
+  const un=fin.filter((f,i)=>!best.has(i));L.push({t:`Rubin sin contraparte en ${c.name}`,n:un.length,f:`rubin_sin_${nm}.csv`,d:()=>toCSV(un.map(f=>Object.fromEntries(R.cols.map(x=>[x,f[x]]))))})}
+ if(res.AllWISE){const a=fin.filter(f=>f.agn_stern12===true);L.push({t:'Candidatos AGN en WISE (W1−W2 ≥ 0.8)',n:a.length,f:'candidatos_agn_wise.csv',d:()=>toCSV(a)})}
+ if(res.TNS){const{p,best}=res.TNS,tm=fin.filter((f,i)=>best.has(i)),sus=tm.filter(f=>f.tns_sospechoso===true);
+  L.push({t:'Con match en TNS',n:tm.length,f:'rubin_en_tns.csv',d:()=>toCSV(tm)});
+  L.push({t:'Sospechosos TNS (AGN reportado o SN con tipo no-SN)',n:sus.length,f:'sospechosos_tns.csv',d:()=>toCSV(sus)});
+  
+  L.push({t:'Links ALeRCE de objetos en TNS',n:tm.length,f:'links_alerce_tns.txt',d:()=>{let o='';for(const c0 of cls){const s=tm.filter(f=>cl(f)==c0).sort((a,b)=>b.probability-a.probability);if(!s.length)continue;o+=`# Clase ${c0}: ${s.length} objetos\n`;for(let i=0;i<s.length;i+=100)o+=`Batch ${i/100+1}\n${url(s.slice(i,i+100).map(f=>f.oid))}\n`;o+='\n'}
+   o+='# Sospechosos (link individual)\n';sus.forEach(f=>o+=`${f.oid}  Rubin=${cl(f)} p=${f.probability}  TNS=${f[p+'_'+tnsN]||''} (${f[p+'_'+tnsT]||'sin clasificar'})\n${url([f.oid])}\n`);return o}})}
+ S.lists=L;
+ $('#lists').innerHTML=L.map((l,i)=>`<div class="list"><div><b>${esc(l.t)}</b><span>${l.n.toLocaleString()} filas · ${l.f}</span></div><button data-dl="${i}" ${l.n?'':'disabled'}>Descargar</button></div>`).join('');
+ const pc=['oid','class_name','probability','alerce_link',...Object.keys(res).flatMap(k=>{const{c,p}=res[k];const ks=k=='TNS'?[tnsN,tnsT,pick(c.data.cols,['redshift','z'])]:k=='AllWISE'?['w1mpro','w2mpro','W1mag','W2mag']:k=='Gaia'?['source_id','phot_g_mean_mag','parallax','Source','Gmag','Plx']:c.data.cols.slice(0,2);return['sep_'+p+'_arcsec',...ks.filter(x=>x&&c.data.cols.includes(x)).map(x=>p+'_'+x)]}),...(res.AllWISE?['W1_W2','agn_stern12']:[]),...(res.TNS?['tns_sospechoso']:[])].filter(x=>fin[0]&&x in fin[0]);
+ $('#prev').innerHTML=`<table><tr>${pc.map(x=>`<th>${esc(x)}</th>`).join('')}</tr>${fin.slice(0,200).map(f=>`<tr>${pc.map(x=>`<td>${x=='alerce_link'&&f[x]?`<a href="${esc(f[x])}" target="_blank" rel="noopener">ver en ALeRCE</a>`:esc(f[x])}</td>`).join('')}</tr>`).join('')}</table>`+(fin.length>200?`<div class="msg" style="padding:0 9px">Se muestran 200 de ${fin.length}; la lista completa está en la descarga.</div>`:'');
+ $('#out').hidden=false;$('#runmsg').textContent=`Listo: ${rows.length} objetos Rubin × ${keys.length} catálogo(s).`}
+$('#run').onclick=run;
+$('#lists').addEventListener('click',e=>{const b=e.target.closest('[data-dl]');if(!b)return;const l=S.lists[+b.dataset.dl];save(l.f,l.d())});
+renderCats();
+</script>
+</body>
+</html>
